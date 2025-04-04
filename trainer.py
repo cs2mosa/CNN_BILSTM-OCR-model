@@ -224,32 +224,3 @@ def levenshtein_distance(s1: str, s2: str) -> int:
         previous_row = current_row
 
     return previous_row[-1]
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Train or evaluate the OCR model.")
-    parser.add_argument('--mode', type=str, default='train', choices=['train', 'eval'], help='Train or evaluate.')
-    parser.add_argument('--model_path', type=str, default='best_model.pth', help='Path to model checkpoint.')
-    parser.add_argument('--image_path', type=str, default='image.png', help='Path to image for inference.')
-    parser.add_argument('--device', type=str, default='cuda', choices=['cuda', 'cpu'], help="Device to use.")
-    parser.add_argument('--num_epochs', type=int, default=50, help="Number of epochs.")
-    parser.add_argument('--batch_size', type=int, default=32, help="Batch size.")
-    args = parser.parse_args()
-
-    device = torch.device(args.device if torch.cuda.is_available() else 'cpu')
-    print(f"Using device: {device}")
-    num_classes = len(CHARS)
-    model = create_model(num_classes).to(device)
-    converter = CTCLabelConverter(CHARS)
-
-    if args.mode == 'train':
-        train_iam_huggingface(model, num_epochs=args.num_epochs, batch_size=args.batch_size, device=device)
-    elif args.mode == 'eval':
-        checkpoint = torch.load(args.model_path, map_location=device)
-        loaded_chars = checkpoint['chars']
-        if loaded_chars != CHARS:
-            print("Warning: Character set mismatch between loaded model and current settings.")
-        model.load_state_dict(checkpoint['model_state_dict'])
-        preprocessor = OCRDataPreprocessor()
-        predicted_text = recognize_text(model, args.image_path, preprocessor, converter, device)
-        print(f"Predicted text: {predicted_text}")
